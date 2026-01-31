@@ -11,9 +11,21 @@ def get_table_value(df, colname, error=None, format="%.3g"):
 
     if error and not pd.isna(df[error].iloc[0]):
         err = df[error].iloc[0]
-        return f"{format % val} ± {format % err}"
+
+        try:
+            return f"{format % val} ± {format % err}"
+        except TypeError:
+            pass
 
     return format % val
+
+def get_table_list(df, colname, format="%.3g"):
+
+    value_list = list(df[colname])
+
+    print(value_list)
+
+    return [(format % val) for val in value_list]
 
 
 def get_converted_fluence(df, fluence, conversion):
