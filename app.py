@@ -41,18 +41,25 @@ tab_afterglow = load_data(dataset_path + "/afterglow.csv")
 tab_flares = load_data(dataset_path + "/flares.csv")
 tab_pulses = load_data(dataset_path + "/pulses.csv")
 
+combined_names = tab_afterglow['GRBname'].unique().tolist() + tab_flares['GRBname'].unique().tolist() + tab_pulses['GRBname'].unique().tolist()
+name_options = sorted(set(combined_names))
+name_options = [x[0:3] + ' ' + x[3:] for x in name_options]
+
 
 ###############################################################################
 ### INDIVIDUAL BURST VIEWER
 
 if st.session_state.page == pages[0]:
 
-    search_query = st.text_input("Enter GRB Name (e.g., GRB210112A):", "").strip().upper()
+    # search_query = st.text_input("Enter GRB Name:", "") # plain entry
+    search_query = st.selectbox("Enter GRB Name:", name_options, index=None, placeholder='Enter GRB Name', label_visibility='collapsed')
 
     if search_query:
 
+        search_query = search_query.strip().upper()
         search_query = search_query.replace(" ", "")
         search_query = search_query if search_query.startswith("GRB") else "GRB" + search_query
+        search_query = search_query if search_query[-1].isalpha() else search_query + "A"
 
         afterglow = tab_afterglow[tab_afterglow['GRBname'].str.upper() == search_query]
         flares = tab_flares[tab_flares['GRBname'].str.upper() == search_query]
@@ -60,7 +67,7 @@ if st.session_state.page == pages[0]:
 
         if not all([afterglow.empty, flares.empty, pulses.empty]):
 
-            st.title(f"{search_query}")
+            st.header(f"{search_query}")
 
             xrt_path = os.path.join(dataset_path, "figures/xrt", f"{search_query}.png")
             bat_path = os.path.join(dataset_path, "figures/bat", f"{search_query}.png")
@@ -73,7 +80,7 @@ if st.session_state.page == pages[0]:
                 if os.path.exists(xrt_path):
                     st.image(xrt_path, width='stretch')
                 else:
-                    st.error(f"XRT fit not available for this burst.")
+                    st.error(f"No XRT fit for this burst.")
 
                 st.subheader('BAT Plot')
                 if os.path.exists(bat_path):
@@ -92,7 +99,25 @@ if st.session_state.page == pages[0]:
         else:
             st.warning(f"No data found for '{search_query}'.")
     else:
-        st.info("Enter a GRB name to display the results.")
+
+        st.container()
+        st.header("LAFF Viewer")
+
+
+        st.markdown("""
+                    This tool allows you to explore the Swift-XRT and Swift-BAT for the complete set of bursts modelled by the Lightcurve and Flare Fitter (LAFF) code developed as part of my PhD thesis at the University of Leicester.
+
+                    The plotted results are displayed where available for each instrument, as well as a summary table showing some general details of the burst alongside the LAFF fit parameters, statistics and some other calculated values. The T90 and redshift values are obtained from the [Swift-BAT GRB catalogue](https://swift.gsfc.nasa.gov/results/batgrbcat/), and the countrate-to-flux conversion factor for each burst is obtained from the Swift-XRT automatically fitted spectrum ([Evans et al. 2009](https://academic.oup.com/mnras/article/397/3/1177/1074442)). Hence, some of the calculated values such as flare fluence and isotropic energy are reliant on these values.
+
+                    A full description of the LAFF fitting procedure can be found in Chapter 2 of my PhD thesis (*link available soon*).
+                    """)
+
+        st.divider()
+
+        st.link_button("LAFF GitHub Repository", "https://github.com/ajhenne/laff/", icon=":material/code:")
+
+        # 3. Call to Action
+
 
 
 ###############################################################################
