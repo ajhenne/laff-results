@@ -1,0 +1,13 @@
+[theme]
+primaryColor="rgb(255, 140, 24)"
+# primaryColor="rgb(106, 90, 205)"
+# backgroundColor = "rgb(254, 254, 254)"
+# secondaryBackgroundColor = "rgb(106, 90, 205)"
+# textColor = "rgb(8, 8, 8)"
+# linkColor = "rgb(106, 90, 205)"
+# borderColor = "rgb(199, 199, 199)"
+# dataframeBorderColor = "rgb(255, 200, 145)"
+# dataframeHeaderBackgroundColor = "rgb(106, 90, 205)"
+
+[theme.sidebar]
+primaryColor="rgb(255, 140, 24)"
