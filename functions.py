@@ -27,3 +27,10 @@ def get_converted_fluence(df, fluence, conversion):
         return "-"
     
     return '%.3g' % (total_fluence * conv)
+
+def print_grb_name(name):
+
+    if name.startswith("GRB"):
+        name = name[3:]
+
+    return "GRB " + name
