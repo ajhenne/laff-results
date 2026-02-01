@@ -1,15 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
+import ast
 
 from random import randrange
 
 from app import name_options, tab_afterglow, tab_flares, tab_pulses, dataset_path
-from functions import get_table_list, get_table_value, get_converted_fluence, print_grb_name
+from functions import get_table_multiple_values, get_table_value, get_table_list, get_converted_fluence, print_grb_name
 
 # search_query = st.text_input("Enter GRB Name:", "") # plain entry
-search_query = st.selectbox("Enter GRB Name:", name_options, index=None, placeholder='Enter GRB Name', label_visibility='collapsed')
-# search_query = st.selectbox("Enter GRB Name:", name_options, index=randrange(len(name_options)-1), placeholder='Enter GRB Name', label_visibility='collapsed')
+# search_query = st.selectbox("Enter GRB Name:", name_options, index=None, placeholder='Enter GRB Name', label_visibility='collapsed')
+search_query = st.selectbox("Enter GRB Name:", name_options, index=randrange(len(name_options)-1), placeholder='Enter GRB Name', label_visibility='collapsed')
 
 # st.divider()
 
@@ -46,29 +47,31 @@ if search_query:
 
         with summary_left:
             for label, value in summary_data_left.items():
-                    col1, col2 = st.columns([0.5, 0.5]) # Adjust ratios as needed
+                    col1, col2 = st.columns([0.5, 0.5])
                     with col1:
                         st.markdown(f"**{label}**")
                     with col2:
                         st.text(value)
         with summary_right:
             for label, value in summary_data_right.items():
-                    col1, col2 = st.columns([0.5, 0.5]) # Adjust ratios as needed
+                    col1, col2 = st.columns([0.5, 0.5])
                     with col1:
                         st.markdown(f"**{label}**")
                     with col2:
                         st.text(value)
+
+        st.markdown(":grey[:small[See [About LAFF](/laff_description) for a description of the model parameters, and the fitting procedure.]]")
 
         st.divider()
 
         ###################################################################
         ### BAT SECTION
 
-        st.subheader("Swift-BAT lightcurve")
+        st.subheader("Swift-BAT")
 
         bat_image_path = os.path.join(dataset_path, "figures/bat", f"{search_query}.png")
 
-        bat_plot, bat_table = st.columns([0.6, 0.4], border=True)
+        bat_plot, bat_table = st.columns([0.6, 0.4], border=True, vertical_alignment='center')
 
         with bat_plot:
             if os.path.exists(bat_image_path):
@@ -87,89 +90,173 @@ if search_query:
                 "Chi-Square": "tba"
                 }
 
-            # Display as a table-like layout
             for label, value in summary_data.items():
-                col1, col2 = st.columns([0.5, 0.5]) # Adjust ratios as needed
+                col1, col2 = st.columns([0.5, 0.5])
                 with col1:
                     st.markdown(f"**{label}**")
                 with col2:
                     st.text(value)
-            # collapse
-            # model[1] parameters: rise, decay, sharp, amplitude
-            # """
 
-        pulse_table = pd.DataFrame({
-            "Pulse Number": get_table_list(pulses, 'pulse_num', format='%d'),
-            "Start Time (s)": get_table_list(pulses, 't_start'),
-            "Peak Time (s)": get_table_list(pulses, 't_peak'),
-            "End Time (s)": get_table_list(pulses, 't_stop'),
-            "Duration (s)": get_table_list(pulses, 'duration'),
-            "Decay/Rise Ratio": get_table_list(pulses, 't_ratio'),
-            "Peak Flux (units)": get_table_list(pulses, 'peak_flux'),
-            "Isotropic Energy (units)": get_table_list(pulses, 'e_iso'),
-            "Peak Luminosity (units)": get_table_list(pulses, 'L_p'),
-            "L_iso (units)": get_table_list(pulses, 'L_iso'),
+        if len(pulses):
+
+            pulse_table = pd.DataFrame({
+                "Pulse": get_table_multiple_values(pulses, 'pulse_num', format='%d'),
+                "Start Time (s)": get_table_multiple_values(pulses, 't_start'),
+                "Peak Time (s)": get_table_multiple_values(pulses, 't_peak'),
+                "End Time (s)": get_table_multiple_values(pulses, 't_stop'),
+                "Duration (s)": get_table_multiple_values(pulses, 'duration'),
+                "Decay/Rise Ratio": get_table_multiple_values(pulses, 't_ratio'),
+                "Fluence (erg/cm^2)": get_table_multiple_values(pulses, 'fluence'),
+                "Peak Flux (erg/cm^2/s^1)": get_table_multiple_values(pulses, 'peak_flux'),
+                "Isotropic Energy (erg)": get_table_multiple_values(pulses, 'e_iso'),
+                "L_peak (erg/s)": get_table_multiple_values(pulses, 'L_p'),
+                "L_iso (erg/s)": get_table_multiple_values(pulses, 'L_iso'),
+                })
+            
+            pulse_table_model = pd.DataFrame({
+                "Pulse Number": get_table_multiple_values(pulses, 'pulse_num', format='%d'),
+                "t_peak": get_table_multiple_values(pulses, 't_peak'),
+                "rise": get_table_multiple_values(pulses, 'rise'),
+                "decay": get_table_multiple_values(pulses, 'decay'),
+                "sharpness": get_table_multiple_values(pulses, 'sharp'),
+                "amplitude": get_table_multiple_values(pulses, 'amplitude')
             })
         
-        pulse_table_model = pd.DataFrame({
-            "Pulse Number": get_table_list(pulses, 'pulse_num', format='%d'),
-            "t_peak": get_table_list(pulses, 't_peak'),
-            "rise": get_table_list(pulses, 'rise'),
-            "decay": get_table_list(pulses, 'decay'),
-            "sharpness": get_table_list(pulses, 'sharp'),
-            "amplitude": get_table_list(pulses, 'amplitude')
-        })
-    
-        st.space()
-        st.dataframe(pulse_table, hide_index=True)
-    
-        with st.expander('Function Parameters'):
+            st.space()
 
-            st.text("These parameters describe the resultant FRED model fit, described in the 'About LAFF' section.")
-
-            if len(pulse_table):
-                st.dataframe(pulse_table_model, hide_index=True)
-            else:
-                st.info("No pulses found for this burst.")
+            st.dataframe(pulse_table, hide_index=True)
         
-
-        # GRBname,pulse_num,t_start,t_stop,t_peak,rise,decay,sharp,amplitude,fluence_rise,fluence_decay,chisq,rchisq,deltaAIC,BIC,Trig_ID,T90,T90_err,redshift,redshift_err,conversion,conversion_bat,bat_conversion_rchisq,dimple,t_rise,t_decay,duration,t_ratio,fluence,peak_flux,underlying_index,d_l,e_iso,L_p,L_iso,t_peak_z,t_start_z,t_end_z
-
-
+            with st.expander('Function Parameters'):
+                st.dataframe(pulse_table_model, hide_index=True)
+            
+        else:
+            st.info("No pulses found for this burst.")
+        
         st.divider()
 
+
         ###################################################################
+        ### XRT SECTION
+
+        st.subheader("Swift-XRT")
+
+        if afterglow.empty and flares.empty:
+            st.info("No XRT fit for this burst.")
+        else:
+
+            xrt_image_path = os.path.join(dataset_path, "figures/xrt", f"{search_query}.png")
+
+            xrt_plot, xrt_table = st.columns([0.6, 0.4], border=True, vertical_alignment='center')
+
+            with xrt_plot:
+                if os.path.exists(xrt_image_path):
+                    st.image(xrt_image_path, width='stretch')
+                else:
+                    st.error("No XRT fit for this burst.")
 
 
+            with xrt_table:
 
-        xrt_path = os.path.join(dataset_path, "figures/xrt", f"{search_query}.png")
+                st.space()
+                slopes_col, breaks_col = st.columns([0.5, 0.5])
 
-        col1, col2 = st.columns([2, 1])
+                with slopes_col:
 
-        with col1:
+                    st.markdown("**Slope Indices**")
+                    
+                    slp_val, slp_err = st.columns([0.4, 0.6])
+                    fmt = "%.3g"
 
-            st.subheader('XRT Plot')
-            if os.path.exists(xrt_path):
-                st.image(xrt_path, width='stretch')
-            else:
-                st.error(f"No XRT fit for this burst.")
+                    with slp_val:
+                        slopes = get_table_list(afterglow, 'slopes')
+                        for v in slopes:
+                            st.markdown(f"{fmt % v}")
+                    with slp_err:
+                        slopes_err = get_table_list(afterglow, 'slopes_err')
+                        for e in slopes_err:
+                            st.markdown(f"($\pm$ {fmt % e})")
 
-            st.subheader('BAT Plot')
-            if os.path.exists(bat_path):
-                st.image(bat_path, width='stretch')
-            else:
-                st.error(f"BAT fit not available for this burst.")
+                with breaks_col:
 
-        with col2:
+                    breaks = get_table_list(afterglow, 'breaks')
+                    breaks_err = get_table_list(afterglow, 'breaks_err')
+
+                    st.markdown("**Break Times (s)**")
+                    
+                    if not len(breaks):
+                        st.text('-')
+                    
+                    brk_val, brk_err = st.columns([0.4, 0.6])
+                    fmt = "%.3g"
+
+                    with brk_val:
+                        for v in breaks:
+                            st.markdown(f"{fmt % v}")
+
+                    with brk_err:
+                        for e in breaks_err:
+                            st.markdown(f"($\pm$ {fmt % e})")
+
+                st.divider()
+
+                summary_data = {
+                    "Afterglow fluence (erg/cm^2)": get_converted_fluence(afterglow, 'fluence', 'conversion'),
+                    "Total flare fluence (erg/cm^2)": "%.3g" % sum([x for x in flares['fluence']]),
+                    }
+
+                for label, value in summary_data.items():
+                    col1, col2 = st.columns([0.5, 0.5])
+                    with col1:
+                        st.markdown(f"**{label}**")
+                    with col2:
+                        st.text(value)
+
+            if len(flares):
+
+                # indices,params,errors
+
+                flare_table = pd.DataFrame({
+                    "Flares": get_table_multiple_values(flares, 'flarenum', format='%d'),
+                    "Start Time (s)": get_table_multiple_values(flares, 't_start'),
+                    "Peak Time (s)": get_table_multiple_values(flares, 't_peak'),
+                    "End Time (s)": get_table_multiple_values(flares, 't_end'),
+                    "Duration (s)": get_table_multiple_values(flares, 'duration'),
+                    "Underlying Index": get_table_multiple_values(flares, 'underlying_index'),
+                    "Fluence (erg/cm^2)": get_table_multiple_values(flares, 'fluence'),
+                    "Peak Flux (erg/cm^2/s^1)": get_table_multiple_values(flares, 'peak_flux'),
+                    "Isotropic Energy (erg)": get_table_multiple_values(flares, 'e_iso'),
+                    "L_peak (erg/s)": get_table_multiple_values(flares, 'L_p'),
+                    "L_iso (erg/s)": get_table_multiple_values(flares, 'L_iso'),
+                    })
+
+                flare_params = [ast.literal_eval(x) for x in flares['params']]
+
+                flare_table_model = pd.DataFrame({
+                    "Flare Number": get_table_multiple_values(flares, 'flarenum', format='%d'),                    
+                    "t_peak": [x[0] for x in flare_params],
+                    "rise": [x[1] for x in flare_params],
+                    "decay": [x[2] for x in flare_params],
+                    "sharpness": [x[3] for x in flare_params],
+                    "amplitude": [x[4] for x in flare_params],
+                })
             
-            st.subheader("Table Fit Values")
+                st.space()
 
-            st.table(afterglow.iloc[0])
-            st.table(flares.iloc[0])
-            st.table(pulses.iloc[0])
+                st.dataframe(flare_table, hide_index=True)
             
+                with st.expander('Function Parameters'):
+                    st.dataframe(flare_table_model, hide_index=True)
+                
+            else:
+                st.info("No pulses found for this burst.")
+            
+            st.divider()
+
+
     else:
         st.warning(f"No data found for '{search_query}'.")
+
+        
 else:
 
     st.container()
